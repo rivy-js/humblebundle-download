@@ -108,9 +108,11 @@ debug('cacheDir="%s"', cacheDir);
 fs.mkdirpSync(cacheDir, 0o700);
 const cachePath = {};
 cachePath.orders = path.join(cacheDir, 'orders.json');
+debug('cachePath.orders="%s"', cachePath.orders);
 
 debug('commander.format=%s', commander.format);
 debug('commander.type=%s', commander.type);
+debug('commander.downloadFolder="%s"', commander.downloadFolder);
 
 const flow = breeze();
 const limiter = new bottleneck({
