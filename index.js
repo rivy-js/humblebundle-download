@@ -62,7 +62,7 @@ commander
 		'Download folder',
 		path.join(os.homedir(), 'Downloads', 'Humble Bundles')
 	)
-	.option('-l, --download-limit <download_limit>', 'Parallel download limit', 1)
+	.option('-l, --download-limit <download_limit>', 'Parallel download limit for bundle elements', 4)
 	.option(
 		'-f, --format <format>',
 		util.format('Format to download (%s)', ALLOWED_FORMATS.join(', ')),
