@@ -84,6 +84,8 @@ commander
 	)
 	.option('-a, --all', 'Download all bundles (default: false)', false)
 	.option('--cache-max-age <hours>', 'Maximum useful age of cached information', 24)
+	.option('--cache-max-concurrent <n>', 'Maximum parallel download threads for cached order details', 25)
+	.option('--cache-min-time <ms>', 'Minimum time to wait before next cached order detail download', 25)
 	.option('-C, --no-cache', 'Ignore cached bundle information')
 	.option('--debug', 'Enable debug logging (default: false)', false)
 	.parse(process.argv);
@@ -109,6 +111,9 @@ fs.mkdirpSync(cacheDir, 0o700);
 const cachePath = {};
 cachePath.orders = path.join(cacheDir, 'orders.json');
 debug('cachePath.orders="%s"', cachePath.orders);
+
+debug('commander.cacheMaxConcurrent=%s', commander.cacheMaxConcurrent);
+debug('commander.cacheMinTime=%s', commander.cacheMinTime);
 
 debug('commander.format=%s', commander.format);
 debug('commander.type=%s', commander.type);
@@ -367,8 +372,8 @@ function fetchOrders(next, orders, session) {
 			});
 
 			var orderInfoLimiter = new bottleneck({
-				maxConcurrent: 5,
-				minTime: 500,
+				maxConcurrent: commander.cacheMaxConcurrent,
+				minTime: commander.cacheMinTime,
 			});
 
 			progressBar.start(total, done);
