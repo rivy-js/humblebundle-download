@@ -4,7 +4,7 @@
 <!-- spell-checker:ignore expandtab markdownlint modeline smarttab softtabstop -->
 
 <!-- spell-checker:words jlongman Longman Löthberg Marby -->
-<!-- spell-checker:ignore humblebundle epub flac mobi sess simpleauth -->
+<!-- spell-checker:ignore humblebundle epub flac mobi sess simpleauth COMMITISH -->
 <!-- markdownlint-disable commands-show-output -->
 
 # [`humblebundle-download`][git-url]
@@ -12,16 +12,14 @@
 > An easy way to download files from your humblebundle account
 > <br/> &bull; an enhanced fork of [DMarby/humblebundle-ebook-downloader](https://github.com/DMarby/humblebundle-ebook-downloader)
 
-[![License][license-image]][license-url]
-[![Javascript Style Guide][style-image]][style-url]
-<br/>
-[![NPM version][npm-image]][npm-url]
-[![Downloads][downloads-image]][downloads-url]
+[![License][license-image]][license-url] [![Javascript Style Guide][style-image]][style-url]
+<br/> [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][downloads-url]
 
 ## Installation
 
 ```shell
-$ npm install -g humblebundle-download
+# COMMITISH == COMMIT, branch, or tag
+$ npm install --global git://github.com/rivy/humblebundle-download.git#COMMITISH
 ```
 
 ## Usage
