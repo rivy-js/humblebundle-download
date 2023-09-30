@@ -1,0 +1,64 @@
+# * abbreviations / acronyms
+AST # abstract syntax tree
+CICD # continuous integration/deployment
+CPU
+CPUs
+DevOps
+EOF
+EOL
+EOLN
+FIFO
+FIFOs
+FOSS # free open source software
+FQDN # fully qualified domain name
+GID # group ID
+GIDs
+GNUEABI
+GNUEABIhf
+MSVC
+MSRV # minimum supported rust version
+OSS # open source software
+POSIX
+POSIXLY
+RISC
+RISCV
+RNG # random number generator
+RNGs
+UID # user ID
+UIDs
+UUID # universally unique identifier
+WASI
+WASM
+aarch
+flac
+lzma
+
+# * names
+BusyBox
+Codacy
+Cygwin
+Deno
+Dprint
+EditorConfig
+FreeBSD
+Gmail
+Irix
+JSDelivr
+MS-DOS
+MSDOS
+MacOS
+MinGW
+Minix
+NetBSD
+Novell
+npmJS
+NuShell
+OpenBSD
+POSIX
+PowerPC
+SELinux
+SkyPack
+Solaris
+SysV
+Xenix
+Yargs
