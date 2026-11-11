@@ -1,0 +1,205 @@
+# Humble Bundle website migration investigation
+
+Investigation date: November 11, 2026  
+Website behavior is undocumented and may change after this date.
+
+## Executive summary
+
+Humble Bundle removed the private REST endpoints used by this repository and by `../dl`. The redesigned account site is a Next.js application backed by authenticated server actions and a new entitlement-oriented data model.
+
+There is no discovered stable, documented replacement API. The closest functional replacement is a Next.js server action named `filterUserLibrary`. It should be treated as an internal implementation detail: its generated identifier and request protocol can change with any frontend deployment.
+
+The most practical migration is a browser-assisted collector that logs in through the new authentication system, reads the complete library, and normalizes the returned entitlements into the legacy order structure consumed by this downloader.
+
+## Verified endpoint behavior
+
+Requests made with the locally configured, unexpired legacy `_simpleauth_sess` value produced these results:
+
+| URL | Result on November 11, 2026 |
+| --- | --- |
+| `https://www.humblebundle.com/api/v1/user/order` | HTTP 404 with the new site's HTML response |
+| `https://hr-humblebundle.appspot.com/api/v1/user/order` | HTTP 403 |
+| `https://www.humblebundle.com/home/library` | Next.js account application; unauthenticated content initiates login behavior |
+| `https://www.humblebundle.com/home/purchases` | Redirect to `auth.humblebundle.com` login |
+
+The configured legacy session had an expiration date of November 13, 2026, so these results were not caused simply by its recorded expiration.
+
+## New website architecture
+
+The current `/home/library` page is served by Next.js and advertises routes including:
+
+- `/home/library`
+- `/home/library/:id`
+- `/home/library/content/:id`
+- `/home/library/group/:id`
+- `/home/purchases`
+- `/home/purchases/:id`
+
+The frontend contains generated references to these server actions:
+
+- `filterUserLibrary`
+- `getVaultSignedUrls`
+- `revalidateLibraryAction`
+
+The observed build-specific action identifier for `filterUserLibrary` was:
+
+```text
+60d7ee9f87dea9e5c62af33064bf64365206a33aaf
+```
+
+This identifier is evidence of the action's existence, not a supported API contract. It is expected to change when Humble deploys another frontend build.
+
+The website also exposes `GET /api/auth/session-status` to its own frontend, but that is a session-state check rather than a library-data endpoint.
+
+## New data model
+
+The frontend represents purchased content approximately as:
+
+```text
+library item
+  id
+  title
+  itemType
+  type
+  deliveryMethods[]
+  entitlements
+    keys[]
+    downloads[]
+      id
+      downloads[]
+        key
+        downloadStruct[]
+          name
+          size
+          url.web
+```
+
+It also supports `entitlement-group` records and distinguishes bundle, storefront, subscription content, and vault content. Vault URLs may be signed on demand through `getVaultSignedUrls`.
+
+The legacy saved data uses:
+
+```text
+order
+  product
+  gamekey
+  subproducts[]
+    machine_name
+    human_name
+    downloads[]
+      machine_name
+      platform
+      download_identifier
+      download_version_number
+      download_struct[]
+        name
+        file_size
+        md5
+        url.web
+```
+
+The structures are similar enough to normalize downloadable entitlements for the existing downloader. Some legacy metadata, such as order-level spending and possibly MD5 hashes, may not be present in the new model.
+
+## Authentication implications
+
+The website now sends account login through `auth.humblebundle.com`, using a flow URL and returning to the main site afterward. Supplying only the old `_simpleauth_sess` cookie did not authenticate `/home/purchases`, despite the locally recorded session not yet being expired.
+
+Consequently, updating only the endpoint strings will not repair this repository. A collector must participate in the new login flow or reuse the full set of cookies produced by a logged-in browser session.
+
+Credentials and cookie values were not written to this repository or to these notes.
+
+## Community repository status
+
+Checked on November 11, 2026:
+
+### Lutris
+
+- Repository: <https://github.com/lutris/lutris>
+- Created October 8, 2013.
+- Active overall, with a repository push on November 10, 2026.
+- Humble-specific commits occurred on October 29, 2026 and in March 2026.
+- Its current Humble integration still calls `/api/v1/user/order` and `/api/v1/order/{gamekey}`.
+- No Humble redesign issue or pull request created since November 1 was found.
+
+### humble-cli
+
+- Repository: <https://github.com/smbl64/humble-cli>
+- Created June 2, 2022.
+- Latest push was September 19, 2026.
+- Recent functional fixes were merged August 29, 2026.
+- It still documents `_simpleauth_sess` and the legacy Humble API.
+- No redesign issue or pull request created since November 1 was found.
+
+### humblebundle-downloader
+
+- Repository: <https://github.com/xtream1101/humblebundle-downloader>
+- Created January 19, 2020.
+- Latest commit was August 5, 2024.
+- Archived by its owner on March 15, 2025.
+- It is not a likely source of an upcoming fix.
+
+## Migration options
+
+### 1. Browser-assisted collection
+
+Recommended.
+
+Use a browser automation library with a persistent profile. Let the user complete Humble's normal login, then either observe the library server-action response or traverse the library pages. Save normalized JSON for the downloader.
+
+Advantages:
+
+- Uses the current supported user-facing login flow.
+- Can accommodate redirects, CSRF state, and multiple cookies.
+- Can discover new build-specific server-action identifiers at runtime.
+
+Costs:
+
+- Adds a browser dependency.
+- Pagination and entitlement groups must be handled carefully.
+- The internal response is still undocumented.
+
+### 2. Direct Next.js server-action client
+
+Possible but fragile.
+
+Discover the current action identifier from the deployed JavaScript, reproduce the React Server Components request, and retain the complete authenticated cookie jar.
+
+This is suitable as an optimization behind a browser-based login, not as a hard-coded replacement API.
+
+### 3. Rendered HTML or RSC scraping
+
+Potential fallback.
+
+Parse the authenticated library pages rather than invoking the action explicitly. This avoids depending directly on the action identifier but depends more heavily on page markup and may require many page requests.
+
+### 4. Continue from saved legacy snapshots
+
+Useful interim mode.
+
+The October 22, 2026 snapshot can continue to drive downloads whose signed URLs remain valid or whose URLs can be refreshed independently. It cannot discover purchases made after the snapshot.
+
+## Suggested implementation sequence
+
+1. Add fixture-based tests using a small, sanitized subset of the October 2026 snapshot.
+2. Define an internal normalized order schema matching the fields actually consumed by `fetch_books()`.
+3. Build an importer for both legacy snapshots and new entitlement records.
+4. Implement persistent browser authentication without storing credentials in the repository.
+5. Enumerate all library tabs, pages, and entitlement groups.
+6. Normalize downloadable entitlements and save them to a configurable cache path.
+7. Run the existing selection and download flow against the normalized cache.
+8. Add explicit diagnostics when Humble changes its build, authentication flow, or response shape.
+
+## Validation checklist
+
+- Purchased, bundle, subscription, and vault tabs are either collected or explicitly reported as unsupported.
+- Pagination continues until no entries remain.
+- Entitlement groups are expanded.
+- Multiple platforms and multiple formats are preserved.
+- Download URL status and redirects are checked before writing files.
+- HTML error pages are never saved as ebooks.
+- Authentication cookies are redacted from logs and excluded from version control.
+- New output is compared against known titles and formats in the October 2026 fixture.
+- A failed collection never overwrites the last valid cache with an empty file.
+
+## Work performed
+
+This investigation was read-only with respect to Humble Bundle and the sibling data repositories. No login state, remote repository, order snapshot, or application source file was modified. Only these documentation files were added locally.

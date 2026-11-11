@@ -1,0 +1,99 @@
+# Repository summary
+
+## Purpose
+
+`humblebundle-ebook-downloader` is a Node.js command-line program for downloading ebook files from purchases in a user's Humble Bundle account. It can select one bundle interactively or process all matching bundles, filter purchases by title, choose a file format, verify MD5 checksums, organize files into bundle directories, and generate simple HTML indexes.
+
+The package is version `0.0.1`. The most recent repository commit is from July 18, 2017.
+
+## Layout
+
+- `index.js` contains the complete application: command-line parsing, authentication headers, API requests, filtering, prompts, downloading, checksums, caching, and HTML generation.
+- `package.json` defines the package metadata, dependencies, and `npm start` command.
+- `README.md` contains the original installation and usage documentation.
+- `.gitignore` excludes local generated content.
+
+There is no application source directory, automated test suite, lock file, lint configuration, or continuous-integration configuration. `npm test` is only a placeholder that exits with an error.
+
+## Original data flow
+
+The downloader accepts the value of Humble Bundle's legacy `_simpleauth_sess` cookie through `--auth_token`. It then performs two types of authenticated request:
+
+1. `GET https://www.humblebundle.com/api/v1/user/order?ajax=true` returns the user's order keys.
+2. `GET https://www.humblebundle.com/api/v1/order/{gamekey}?ajax=true` returns the details and downloadable files for each order.
+
+The resulting array is cached as `/tmp/humblecache.json`. `--read_cache` bypasses the network and reads this file.
+
+For each selected order, the program expects this legacy structure:
+
+```text
+order
+  product
+    human_name
+  subproducts[]
+    human_name
+    downloads[]
+      machine_name
+      download_struct[]
+        name
+        md5
+        url.web
+```
+
+The download implementation itself is independent of the order-list endpoint. If an adapter supplies objects in this structure, most of `fetch_books()` can continue to work.
+
+## Command-line behavior
+
+Important options include:
+
+- `--auth_token`: legacy `_simpleauth_sess` cookie value.
+- `--download_folder`: destination directory; defaults to `download`.
+- `--format`: requested format; defaults to `EPUB`.
+- `--title_matches`: case-insensitive purchase-title filter.
+- `--download_limit`: concurrent download count; defaults to 5.
+- `--read_cache`: use `/tmp/humblecache.json` rather than querying Humble Bundle.
+- `--checksum`: verify downloaded files using the provided MD5 value.
+- `--bundle`: create a directory for each bundle.
+- `--all`: process every matching bundle without prompting.
+- `--html`: generate a basic HTML index.
+- `--disable`: refresh or organize existing files without downloading missing files.
+
+## Related local material
+
+The sibling `../dl` repository contains `hb.orders.ts`, a newer Deno-based order collector that used the same retired `/api/v1` endpoints.
+
+The sibling `../hb-dl.orders` directory contains historical API snapshots. The October 22, 2026 snapshot has:
+
+- 2,056 order records.
+- 1,292 orders containing downloads.
+- Approximately 69 MB of legacy JSON.
+
+The November 7, 2026 output is zero bytes, consistent with the endpoint removal. The October snapshot is a useful fixture for regression testing a compatibility adapter.
+
+## Maintenance concerns
+
+- Both order-discovery endpoints were removed in November 2026.
+- The legacy cookie no longer authenticates the redesigned account application by itself.
+- Dependencies and Node.js idioms date from approximately 2015–2017.
+- Download requests do not explicitly validate HTTP status codes or redirects before treating a stream as a file.
+- The checksum reader uses the deprecated `Buffer` constructor and only MD5.
+- Error handling can report completion even after individual failures.
+- The fixed `/tmp/humblecache.json` path is not portable to standard Windows environments.
+- Bundle downloads launched by `--all` are not globally constrained by one concurrency queue.
+- HTML output is generated with string concatenation and has no dedicated escaping layer beyond selective tag stripping.
+
+## Recommended modernization boundary
+
+Keep acquisition separate from downloading:
+
+```text
+Humble authentication and library collector
+                    |
+                    v
+          normalized legacy orders
+                    |
+                    v
+        existing filtering/downloader logic
+```
+
+The first migration should replace only order acquisition and normalization. Broader dependency and download-engine modernization can then be performed independently and tested against the saved October 2026 order snapshot.
