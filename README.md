@@ -15,6 +15,13 @@
 [![License][license-image]][license-url] [![Javascript Style Guide][style-image]][style-url]
 <br/> [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][downloads-url]
 
+> [!WARNING]
+> Humble Bundle removed the private `/api/v1/user/order` and
+> `/api/v1/order/{gamekey}` endpoints in November 2026. The authentication and
+> download-discovery flow described by this version no longer works against the
+> redesigned website. See the [website migration investigation](docs/HUMBLE-WEBSITE-MIGRATION.mkd)
+> for verified findings and possible replacement approaches.
+
 ## Installation
 
 ```shell
@@ -48,6 +55,16 @@ Options:
 
 - [`humblebundle-ebook-downloader`](https://www.npmjs.com/package/humblebundle-ebook-downloader) @ [DMarby/humblebundle-ebook-downloader](https://github.com/DMarby/humblebundle-ebook-downloader)
 - [jlongman/humblebundle-ebook-downloader](https://github.com/jlongman/humblebundle-ebook-downloader)
+
+## Documentation
+
+- [Repository summary](docs/REPOSITORY-SUMMARY.mkd) describes the architecture,
+  legacy data flow, local historical fixtures, maintenance risks, and suggested
+  modernization boundary.
+- [Humble Bundle website migration](docs/HUMBLE-WEBSITE-MIGRATION.mkd) records
+  the November 2026 endpoint investigation, redesigned library data model,
+  authentication changes, community-project status, and recommended migration
+  sequence.
 
 ## Authors
 
